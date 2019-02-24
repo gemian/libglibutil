@@ -2,7 +2,7 @@ libglibutil (1.0.35+gemian) buster; urgency=medium
 
   * Branched for Gemian
 
- -- Adam Boardman <adamboardman@gmail.com>  Thu, 24 Feb 2019 15:35:48 +0000
+ -- Adam Boardman <adamboardman@gmail.com>  Sun, 24 Feb 2019 15:35:48 +0000
 
 libglibutil (1.0.35) unstable; urgency=low
 
