@@ -1,8 +1,52 @@
-libglibutil (1.0.29+gemian1) buster; urgency=medium
+libglibutil (1.0.35+gemian) buster; urgency=medium
 
   * Branched for Gemian
 
- -- Adam Boardman <adamboardman@gmail.com>  Thu, 17 May 2018 16:29:48 +0100
+ -- Adam Boardman <adamboardman@gmail.com>  Thu, 24 Feb 2019 15:35:48 +0000
+
+libglibutil (1.0.35) unstable; urgency=low
+
+  * Added gutil_strv_last() function
+
+ -- Slava Monich <slava.monich@jolla.com>  Wed, 13 Feb 2019 19:56:31 +0300
+
+libglibutil (1.0.34) unstable; urgency=low
+
+  * Added a few more GUtilIdlePool functions:
+
+    gutil_idle_pool_destroy
+    gutil_idle_pool_add_bytes
+    gutil_idle_pool_add_bytes_ref
+
+ -- Slava Monich <slava.monich@jolla.com>  Wed, 07 Nov 2018 17:57:52 +0300
+
+libglibutil (1.0.33) unstable; urgency=low
+
+  * Added GLOG_FLAG_DISABLE flag
+
+ -- Slava Monich <slava.monich@jolla.com>  Sat, 03 Nov 2018 11:47:25 +0300
+
+libglibutil (1.0.32) unstable; urgency=low
+
+  * Added gutil_idle_pool_add_strv function
+
+ -- Slava Monich <slava.monich@jolla.com>  Sun, 14 Oct 2018 00:47:01 +0300
+
+libglibutil (1.0.31) unstable; urgency=low
+
+  * Added GUtilData type and functions to work with it:
+
+    gutil_data_equal
+    gutil_data_from_string
+    gutil_data_from_bytes
+
+ -- Slava Monich <slava.monich@jolla.com>  Sat, 13 Oct 2018 13:17:45 +0300
+
+libglibutil (1.0.30) unstable; urgency=low
+
+  * Added gutil_parse_int function
+
+ -- Slava Monich <slava.monich@jolla.com>  Fri, 20 Jul 2018 00:06:40 +0300
 
 libglibutil (1.0.29) unstable; urgency=low
 

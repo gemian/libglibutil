@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016-2018 Jolla Ltd.
- * Contact: Slava Monich <slava.monich@jolla.com>
+ * Copyright (C) 2016-2019 Jolla Ltd.
+ * Copyright (C) 2016-2019 Slava Monich <slava.monich@jolla.com>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -13,9 +13,9 @@
  *   2. Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *   3. Neither the name of Jolla Ltd nor the names of its contributors may
- *      be used to endorse or promote products derived from this software
- *      without specific prior written permission.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -40,7 +40,7 @@ G_BEGIN_DECLS
 void
 gutil_disconnect_handlers(
     gpointer instance,
-    gulong *ids,
+    gulong* ids,
     int count);
 
 void*
@@ -54,6 +54,7 @@ gutil_hex2bytes(
     const char* str,
     gssize len);
 
+/* since 1.0.29 */
 #define GUTIL_HEXDUMP_BUFSIZE  (70)
 #define GUTIL_HEXDUMP_MAXBYTES (16)
 
@@ -61,7 +62,30 @@ guint
 gutil_hexdump(
     char* buf,
     const void* data,
-    guint len); /* since 1.0.29 */
+    guint len);
+
+/* since 1.0.30 */
+gboolean
+gutil_parse_int(
+    const char* str,
+    int base,
+    int* value);
+
+/* since 1.0.31 */
+gboolean
+gutil_data_equal(
+    const GUtilData* data1,
+    const GUtilData* data2);
+
+const GUtilData*
+gutil_data_from_string(
+    GUtilData* data,
+    const char* str);
+
+const GUtilData*
+gutil_data_from_bytes(
+    GUtilData* data,
+    GBytes* bytes);
 
 G_END_DECLS
 

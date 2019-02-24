@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016-2018 Jolla Ltd.
- * Contact: Slava Monich <slava.monich@jolla.com>
+ * Copyright (C) 2016-2018 Slava Monich <slava.monich@jolla.com>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -13,9 +13,9 @@
  *   2. Redistributions in binary form must reproduce the above copyright
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
- *   3. Neither the name of Jolla Ltd nor the names of its contributors may
- *      be used to endorse or promote products derived from this software
- *      without specific prior written permission.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -33,6 +33,7 @@
 #include "test_common.h"
 
 #include "gutil_idlepool.h"
+#include "gutil_strv.h"
 #include "gutil_log.h"
 
 #define TEST_TIMEOUT (10) /* seconds */
@@ -54,6 +55,44 @@ test_done(
     gpointer loop)
 {
     g_main_loop_quit(loop);
+}
+
+/*==========================================================================*
+ * Null
+ *==========================================================================*/
+
+static
+void
+test_null(
+    void)
+{
+    GUtilIdlePool* pool = gutil_idle_pool_new();
+
+    /* These have no effect, just testing NULL-telerance */
+    gutil_idle_pool_add_strv(NULL, NULL);
+    gutil_idle_pool_add_strv(pool, NULL);
+    gutil_idle_pool_add_ptr_array(NULL, NULL);
+    gutil_idle_pool_add_ptr_array(pool, NULL);
+    gutil_idle_pool_add_ptr_array_ref(NULL, NULL);
+    gutil_idle_pool_add_ptr_array_ref(pool, NULL);
+    gutil_idle_pool_add_variant(NULL, NULL);
+    gutil_idle_pool_add_variant(pool, NULL);
+    gutil_idle_pool_add_variant_ref(NULL, NULL);
+    gutil_idle_pool_add_variant_ref(pool, NULL);
+    gutil_idle_pool_add_object(NULL, NULL);
+    gutil_idle_pool_add_object(pool, NULL);
+    gutil_idle_pool_add_object_ref(NULL, NULL);
+    gutil_idle_pool_add_object_ref(pool, NULL);
+    gutil_idle_pool_add_bytes(NULL, NULL);
+    gutil_idle_pool_add_bytes(pool, NULL);
+    gutil_idle_pool_add_bytes_ref(NULL, NULL);
+    gutil_idle_pool_add_bytes_ref(pool, NULL);
+    gutil_idle_pool_add(NULL, NULL, NULL);
+    gutil_idle_pool_add(pool, NULL, NULL);
+    gutil_idle_pool_ref(NULL);
+    gutil_idle_pool_unref(NULL);
+    gutil_idle_pool_drain(NULL);
+    gutil_idle_pool_unref(pool);
 }
 
 /*==========================================================================*
@@ -114,6 +153,8 @@ test_basic(
     GVariant* variant = g_variant_take_ref(g_variant_new_int32(1));
     GObject* object = g_object_new(TEST_OBJECT_TYPE, NULL);
     GMainLoop* loop = g_main_loop_new(NULL, TRUE);
+    GStrV* strv = gutil_strv_add(NULL, "foo");
+    GBytes* bytes = g_bytes_new("bar", 3);
     TestBasic test;
 
     memset(&test, 0, sizeof(test));
@@ -123,26 +164,8 @@ test_basic(
         g_timeout_add_seconds(TEST_TIMEOUT, test_timeout, loop);
     }
 
-    /* These have no effect, just testing NULL-telerance */
     gutil_idle_pool_unref(gutil_idle_pool_new());
-    gutil_idle_pool_add_ptr_array(NULL, array);
-    gutil_idle_pool_add_ptr_array(test.pool, NULL);
-    gutil_idle_pool_add_ptr_array_ref(NULL, array);
-    gutil_idle_pool_add_ptr_array_ref(test.pool, NULL);
-    gutil_idle_pool_add_variant(NULL, variant);
-    gutil_idle_pool_add_variant(test.pool, NULL);
-    gutil_idle_pool_add_variant_ref(NULL, variant);
-    gutil_idle_pool_add_variant_ref(test.pool, NULL);
-    gutil_idle_pool_add_object(NULL, object);
-    gutil_idle_pool_add_object(test.pool, NULL);
-    gutil_idle_pool_add_object_ref(NULL, object);
-    gutil_idle_pool_add_object_ref(test.pool, NULL);
-    gutil_idle_pool_add(NULL, NULL, test_basic_unref_pool);
-    gutil_idle_pool_add(test.pool, NULL, NULL);
-    gutil_idle_pool_ref(NULL);
-    gutil_idle_pool_unref(NULL);
-    gutil_idle_pool_drain(NULL);
-
+    gutil_idle_pool_add_strv(test.pool, strv);
     g_ptr_array_add(array, &test);
     gutil_idle_pool_add_ptr_array_ref(test.pool, array);
     g_ptr_array_unref(array);
@@ -150,12 +173,14 @@ test_basic(
     g_variant_unref(variant);
     gutil_idle_pool_add_object_ref(test.pool, object);
     g_object_unref(object);
+    gutil_idle_pool_add_bytes_ref(test.pool, bytes);
+    g_bytes_unref(bytes);
     gutil_idle_pool_ref(test.pool);
     gutil_idle_pool_add(test.pool, &test, test_basic_unref_pool);
     gutil_idle_pool_add(test.pool, loop, test_done);
     g_main_loop_run(loop);
     gutil_idle_pool_add(test.pool, &test, test_basic_add_during_drain);
-    gutil_idle_pool_unref(test.pool);
+    gutil_idle_pool_destroy(test.pool);
 
     g_assert(test.ok);
     g_assert(!test_object_count);
@@ -196,7 +221,7 @@ test_shared(
  * Common
  *==========================================================================*/
 
-#define TEST_PREFIX "/idlepool/"
+#define TEST_(test) "/idlepool/" test
 
 int main(int argc, char* argv[])
 {
@@ -204,8 +229,9 @@ int main(int argc, char* argv[])
     g_type_init();
     G_GNUC_END_IGNORE_DEPRECATIONS;
     g_test_init(&argc, &argv, NULL);
-    g_test_add_func(TEST_PREFIX "basic", test_basic);
-    g_test_add_func(TEST_PREFIX "shared", test_shared);
+    g_test_add_func(TEST_("null"), test_null);
+    g_test_add_func(TEST_("basic"), test_basic);
+    g_test_add_func(TEST_("shared"), test_shared);
     test_init(&test_opt, argc, argv);
     return g_test_run();
 }
