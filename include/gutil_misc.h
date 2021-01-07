@@ -54,7 +54,6 @@ gutil_hex2bytes(
     const char* str,
     gssize len);
 
-/* since 1.0.29 */
 #define GUTIL_HEXDUMP_BUFSIZE  (70)
 #define GUTIL_HEXDUMP_MAXBYTES (16)
 
