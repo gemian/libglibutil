@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2014-2019 Jolla Ltd.
- * Copyright (C) 2014-2019 Slava Monich <slava.monich@jolla.com>
+ * Copyright (C) 2014-2020 Jolla Ltd.
+ * Copyright (C) 2014-2020 Slava Monich <slava.monich@jolla.com>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -31,6 +31,7 @@
  */
 
 #include "gutil_strv.h"
+#include "gutil_misc.h"
 
 #include <stdlib.h>
 
@@ -41,13 +42,7 @@ guint
 gutil_strv_length(
     const GStrV* sv)
 {
-    if (G_LIKELY(sv)) {
-        guint i = 0;
-        while (sv[i]) i++;
-        return i;
-    } else {
-        return 0;
-    }
+    return (guint) gutil_ptrv_length(sv);
 }
 
 /**
@@ -125,14 +120,42 @@ gutil_strv_add(
     const char* s)
 {
     if (s) {
-        const guint len = gutil_strv_length(sv);
-        GStrV* newsv = g_realloc(sv, sizeof(char*)*(len+2));
-        newsv[len] = g_strdup(s);
-        newsv[len+1] = NULL;
-        return newsv;
-    } else {
-        return sv;
+        guint len = gutil_strv_length(sv);
+
+        sv = g_renew(char*, sv, len + 2);
+        sv[len++] = g_strdup(s);
+        sv[len] = NULL;
     }
+    return sv;
+}
+
+/**
+ * Appends new strings to the array.
+ */
+GStrV*
+gutil_strv_addv(
+    GStrV* sv,
+    const char* s,
+    ...)
+{
+    if (s) {
+        va_list va;
+        const char* s1;
+        guint len, i, n;
+
+        va_start(va, s);
+        for (n = 1; (s1 = va_arg(va, char*)) != NULL; n++);
+        va_end(va);
+
+        len = gutil_strv_length(sv);
+        sv = g_renew(gchar*, sv, len + n + 1);
+        sv[len++] = g_strdup(s);
+        va_start(va, s);
+        for (i = 1; i < n; i++) sv[len++] = g_strdup(va_arg(va, char*));
+        va_end(va);
+        sv[len] = NULL;
+    }
+    return sv;
 }
 
 /**
@@ -161,25 +184,37 @@ gutil_strv_remove_at(
 }
 
 /**
- * Checks two string arrays for equality.
+ * Checks two string arrays for equality. NULL and empty arrays are equal.
+ *
+ * This is basically a NULL-tolerant equivalent of g_strv_equal which
+ * appeared in glib 2.60.
  */
 gboolean
 gutil_strv_equal(
     const GStrV* sv1,
     const GStrV* sv2)
 {
-    const guint len1 = gutil_strv_length(sv1);
-    const guint len2 = gutil_strv_length(sv2);
-    if (len1 == len2) {
-        guint i;
-        for (i=0; i<len1; i++) {
-            if (strcmp(sv1[i], sv2[i])) {
-                return FALSE;
-            }
-        }
+    if (sv1 == sv2) {
         return TRUE;
+    } else if (!sv1) {
+        return !sv2[0];
+    } else if (!sv2) {
+        return !sv1[0];
+    } else {
+        guint len = 0;
+
+        while (sv1[len] && sv2[len]) len++;
+        if (!sv1[len] && !sv2[len]) {
+            guint i;
+            for (i=0; i<len; i++) {
+                if (strcmp(sv1[i], sv2[i])) {
+                    return FALSE;
+                }
+            }
+            return TRUE;
+        }
+        return FALSE;
     }
-    return FALSE;
 }
 
 static
@@ -215,6 +250,32 @@ gutil_strv_sort(
               gutil_strv_sort_descending);
     }
     return sv;
+}
+
+/**
+ * Binary search in the sorted string array. Returns index of the
+ * specified string in the string array, or -1 if the string is not
+ * found. It's basically a version of gutil_strv_find optimized for
+ * sorted arrays. The string array must be sorted by gutil_strv_sort
+ * with the same 'ascending' argument.
+ */
+int
+gutil_strv_bsearch(
+    GStrV* sv,
+    const char* s,
+    gboolean ascending) /* Since 1.0.40 */
+{
+    if (s) {
+        guint len = gutil_strv_length(sv);
+        if (len > 0) {
+            GStrV* found = bsearch(&s, sv, len, sizeof(char*), ascending ?
+                gutil_strv_sort_ascending : gutil_strv_sort_descending);
+            if (found) {
+                return found - sv;
+            }
+        }
+    }
+    return -1;
 }
 
 /**

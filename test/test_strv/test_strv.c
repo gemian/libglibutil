@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2015-2019 Jolla Ltd.
- * Copyright (C) 2015-2019 Slava Monich <slava.monich@jolla.com>
+ * Copyright (C) 2015-2020 Jolla Ltd.
+ * Copyright (C) 2015-2020 Slava Monich <slava.monich@jolla.com>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -92,18 +92,25 @@ void
 test_equal(
     void)
 {
-    /* gutil_strv_add(NULL, NULL) is a nop */
-    char** sv1 = gutil_strv_add(gutil_strv_add(gutil_strv_add(gutil_strv_add(
-        gutil_strv_add(gutil_strv_add(NULL, NULL), "a"), "b"), "c"), " "), "");
+    char** sv1 = gutil_strv_addv(NULL, "a", "b", "c", " ", "", NULL);
     char** sv2 = g_strsplit("a,b,c, ,", ",", 0);
     char** sv3 = g_strsplit("a,a,a, ,", ",", 0);
     char** sv4 = g_strsplit("a,b,c,,", ",", 0);
     char** sv5 = g_strsplit("a,b,c,", ",", 0);
+    char* empty = NULL;
 
+    g_assert(!gutil_strv_add(NULL, NULL));
+    g_assert(gutil_strv_equal(NULL, NULL));
+    g_assert(gutil_strv_equal(NULL, &empty));
+    g_assert(gutil_strv_equal(&empty, NULL));
+    g_assert(!gutil_strv_equal(sv1, NULL));
+    g_assert(!gutil_strv_equal(NULL, sv2));
+    g_assert(gutil_strv_equal(sv1, sv1));
     g_assert(gutil_strv_equal(sv1, sv2));
     g_assert(!gutil_strv_equal(sv1, sv3));
     g_assert(!gutil_strv_equal(sv1, sv4));
     g_assert(!gutil_strv_equal(sv1, sv5));
+    g_assert(!gutil_strv_equal(sv5, sv1));
 
     g_strfreev(sv1);
     g_strfreev(sv2);
@@ -128,6 +135,7 @@ test_find(
     g_assert(gutil_strv_contains(sv, "c"));
     g_assert(!gutil_strv_contains(sv, "d"));
     g_assert(gutil_strv_find(sv, "b") == 1);
+    g_assert(!gutil_strv_contains(sv, NULL));
     g_assert(!gutil_strv_contains(NULL, "a"));
     g_assert(!gutil_strv_contains(NULL, NULL));
     g_strfreev(sv);
@@ -187,6 +195,31 @@ test_sort(
 }
 
 /*==========================================================================*
+ * Bsearch
+ *==========================================================================*/
+
+static
+void
+test_bsearch(
+    void)
+{
+    char** a = g_strsplit("a,b,c,d", ",", 0);
+    char** d = g_strsplit("d,c,b,a", ",", 0);
+
+    g_assert(gutil_strv_sort(a, TRUE) == a);
+    g_assert(gutil_strv_sort(d, FALSE) == d);
+
+    g_assert(gutil_strv_bsearch(NULL, "a", TRUE) < 0);
+    g_assert(gutil_strv_bsearch(a, NULL, TRUE) < 0);
+    g_assert(gutil_strv_bsearch(a, "x", TRUE) < 0);
+    g_assert(gutil_strv_bsearch(a, "a", TRUE) == 0);
+    g_assert(gutil_strv_bsearch(d, "a", FALSE) == 3);
+
+    g_strfreev(a);
+    g_strfreev(d);
+}
+
+/*==========================================================================*
  * Strip
  *==========================================================================*/
 
@@ -213,11 +246,13 @@ int main(int argc, char* argv[])
 {
     g_test_init(&argc, &argv, NULL);
     g_test_add_func(TEST_PREFIX "basic", test_basic);
+    g_test_add_func(TEST_PREFIX "addv", test_addv);
     g_test_add_func(TEST_PREFIX "last", test_last);
     g_test_add_func(TEST_PREFIX "equal", test_equal);
     g_test_add_func(TEST_PREFIX "find", test_find);
     g_test_add_func(TEST_PREFIX "remove", test_remove);
     g_test_add_func(TEST_PREFIX "sort", test_sort);
+    g_test_add_func(TEST_PREFIX "bsearch", test_bsearch);
     g_test_add_func(TEST_PREFIX "strip", test_strip);
     test_init(&test_opt, argc, argv);
     return g_test_run();

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2014-2018 Jolla Ltd.
- * Copyright (C) 2014-2018 Slava Monich <slava.monich@jolla.com>
+ * Copyright (C) 2014-2019 Jolla Ltd.
+ * Copyright (C) 2014-2019 Slava Monich <slava.monich@jolla.com>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -58,7 +58,7 @@ GLogProc2 gutil_log_func2 = gutil_log_default_proc;
 GLogModule gutil_log_default = {
     NULL,               /* name      */
     NULL,               /* parent    */
-    NULL,               /* reserved  */
+    NULL,               /* log_proc  */
     GLOG_LEVEL_MAX,     /* max_level */
     GLOG_LEVEL_DEFAULT, /* level     */
     0,                  /* flags     */
@@ -108,6 +108,7 @@ gutil_log_format(
 {
     int size, nchars = -1;
     char* buffer;
+
     if (buf) {
         size = bufsize;
         buffer = buf;
@@ -115,10 +116,11 @@ gutil_log_format(
         size = MAX(100,bufsize);
         buffer = g_malloc(size);
     }
-    while (buffer) {
 
+    while (buffer) {
         /* Try to print in the allocated space. */
         va_list va2;
+
         G_VA_COPY(va2, va);
         nchars = g_vsnprintf(buffer, size, format, va2);
         va_end(va2);
@@ -151,13 +153,26 @@ gutil_log_stdio(
     char buf[512];
     const char* prefix = "";
     char* msg;
+
     if (gutil_log_timestamp) {
         time_t now;
+#ifndef _WIN32
+        struct tm tm_;
+#define localtime(t) localtime_r(t, &tm_)
+#endif
+
         time(&now);
         strftime(t, sizeof(t), "%Y-%m-%d %H:%M:%S ", localtime(&now));
+#undef localtime
     } else {
         t[0] = 0;
     }
+
+    /* Empty name is treated the same way as NULL */
+    if (name && !name[0]) {
+        name = NULL;
+    }
+
     switch (level) {
     case GLOG_LEVEL_WARN: prefix = "WARNING: "; break;
     case GLOG_LEVEL_ERR:  prefix = "ERROR: ";   break;
@@ -203,6 +218,26 @@ gutil_log_stderr(
     gutil_log_stdio(stderr, name, level, format, va);
 }
 
+void
+gutil_log_stdout2(
+    const GLogModule* module,
+    int level,
+    const char* format,
+    va_list va) /* Since 1.0.43 */
+{
+    gutil_log_stdout(module ? module->name : NULL, level, format, va);
+}
+
+void
+gutil_log_stderr2(
+    const GLogModule* module,
+    int level,
+    const char* format,
+    va_list va) /* Since 1.0.43 */
+{
+    gutil_log_stderr(module ? module->name : NULL, level, format, va);
+}
+
 /* Formards output to syslog */
 #if GLOG_SYSLOG
 #include <syslog.h>
@@ -215,6 +250,7 @@ gutil_log_syslog(
 {
     int priority;
     const char* prefix = NULL;
+
     switch (level) {
     default:
     case GLOG_LEVEL_INFO:
@@ -235,6 +271,15 @@ gutil_log_syslog(
         prefix = "ERROR! ";
         break;
     }
+
+    if (name) {
+        /* We don't want to see default name twice in the log */
+        if (!name[0] || name == gutil_log_default.name ||
+            !g_strcmp0(name, gutil_log_default.name)) {
+            name = NULL;
+        }
+    }
+
     if (name || prefix) {
         char buf[512];
         char* msg = gutil_log_format(buf, sizeof(buf), format, va);
@@ -248,6 +293,16 @@ gutil_log_syslog(
     } else {
         vsyslog(priority, format, va);
     }
+}
+
+void
+gutil_log_syslog2(
+    const GLogModule* module,
+    int level,
+    const char* format,
+    va_list va) /* Since 1.0.43 */
+{
+    gutil_log_syslog(module ? module->name : NULL, level, format, va);
 }
 #endif /* GLOG_SYSLOG */
 
@@ -270,6 +325,16 @@ gutil_log_glib(
     case GLOG_LEVEL_ERR:     flags = G_LOG_LEVEL_CRITICAL; break;
     }
     g_logv(name, flags, format, va);
+}
+
+void
+gutil_log_glib2(
+    const GLogModule* module,
+    int level,
+    const char* format,
+    va_list va) /* Since 1.0.43 */
+{
+    gutil_log_glib(module ? module->name : NULL, level, format, va);
 }
 #endif /* GLOG_GLIB */
 
@@ -311,11 +376,11 @@ gutil_logv_r(
                 check->level : gutil_log_default.level;
             if ((level > GLOG_LEVEL_NONE && level <= max_level) ||
                 (level == GLOG_LEVEL_ALWAYS)) {
-                GLogProc2 log = gutil_log_func2;
-                if (G_LIKELY(log)) {
-                    if (!module) module = &gutil_log_default;
-                    log(module, level, format, va);
-                }
+                GLogProc2 log;
+                /* Caller makes sure that at least gutil_log_func2 is there */
+                if (!module) module = &gutil_log_default;
+                log = module->log_proc ? module->log_proc : gutil_log_func2;
+                log(module, level, format, va);
             }
         }
     }
@@ -498,7 +563,10 @@ gutil_log_set_type(
         if (gutil_log_func != gutil_log_syslog) {
             openlog(NULL, LOG_PID | LOG_CONS, LOG_USER);
         }
-        gutil_log_default.name = NULL;
+        /* NULL default_name means "don't change the default name" */
+        if (default_name) {
+            gutil_log_default.name = default_name;
+        }
         gutil_log_func = gutil_log_syslog;
         return TRUE;
     }
@@ -506,7 +574,10 @@ gutil_log_set_type(
         closelog();
     }
 #endif /* GLOG_SYSLOG */
-    gutil_log_default.name = default_name;
+    /* NULL default_name means "don't change the default name" */
+    if (default_name) {
+        gutil_log_default.name = default_name;
+    }
     if (!g_ascii_strcasecmp(type, GLOG_TYPE_STDOUT)) {
         gutil_log_func = gutil_log_stdout;
         return TRUE;

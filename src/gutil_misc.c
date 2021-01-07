@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016-2018 Jolla Ltd.
- * Copyright (C) 2016-2018 Slava Monich <slava.monich@jolla.com>
+ * Copyright (C) 2016-2020 Jolla Ltd.
+ * Copyright (C) 2016-2020 Slava Monich <slava.monich@jolla.com>
  *
  * You may use this file under the terms of BSD license as follows:
  *
@@ -14,8 +14,8 @@
  *      notice, this list of conditions and the following disclaimer in the
  *      documentation and/or other materials provided with the distribution.
  *   3. Neither the names of the copyright holders nor the names of its
- *      contributors may be used to endorse or promote products derived from
- *      this software without specific prior written permission.
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -226,6 +226,209 @@ gutil_data_from_bytes(
         }
     }
     return data;
+}
+
+gboolean
+gutil_data_has_prefix(
+    const GUtilData* data,
+    const GUtilData* prefix) /* Since 1.0.38 */
+{
+    /*
+     * Not that it was overly important, but let's postulate that
+     * NULL begins with NULL, empty block begins with empty block
+     * but NULL doesn't begin with empty block and empty block
+     * doesn't begin with NULL.
+     */
+    if (G_LIKELY(data)) {
+        return G_LIKELY(prefix) &&
+            prefix->size <= data->size &&
+            !memcmp(data->bytes, prefix->bytes, prefix->size);
+    } else {
+        return !prefix;
+    }
+}
+
+gboolean
+gutil_data_has_suffix(
+    const GUtilData* data,
+    const GUtilData* suffix) /* Since 1.0.38 */
+{
+    /*
+     * Similarly to gutil_data_has_prefix, NULL ends with NULL, empty
+     * block ends with empty block but NULL doesn't end with empty block
+     * and empty block doesn't end with NULL.
+     */
+    if (G_LIKELY(data)) {
+        return G_LIKELY(suffix) &&
+            suffix->size <= data->size &&
+            !memcmp(data->bytes + (data->size - suffix->size),
+                suffix->bytes, suffix->size);
+    } else {
+        return !suffix;
+    }
+}
+
+GBytes*
+gutil_bytes_concat(
+    GBytes* bytes1,
+    ...) /* Since 1.0.37 */
+{
+    if (G_LIKELY(bytes1)) {
+        va_list args;
+        gsize size = g_bytes_get_size(bytes1);
+        gsize total = size;
+        guint non_empty_count;
+        GBytes* non_empty;
+        GBytes* b;
+
+        if (!size) {
+            non_empty_count = 0;
+            non_empty = NULL;
+        } else {
+            non_empty_count = 1;
+            non_empty = bytes1;
+        }
+
+        va_start(args, bytes1);
+        b = va_arg(args, GBytes*);
+        while (b) {
+            size = g_bytes_get_size(b);
+            total += size;
+            if (size) {
+                non_empty_count++;
+                non_empty = b;
+            }
+            b = va_arg(args, GBytes*);
+        }
+        va_end(args);
+
+        if (non_empty_count == 0) {
+            /* All arrays are empty */
+            return g_bytes_ref(bytes1);
+        } else if (non_empty_count == 1) {
+            /* Only one array is non-empty */
+            return g_bytes_ref(non_empty);
+        } else {
+            /* We actually need to concatenate something */
+            guint8* buf = g_malloc(total);
+            guint8* dest;
+            gsize size;
+            const void* src = g_bytes_get_data(bytes1, &size);
+
+            memcpy(buf, src, size);
+            dest = buf + size;
+
+            va_start(args, bytes1);
+            b = va_arg(args, GBytes*);
+            while (b) {
+                src = g_bytes_get_data(b, &size);
+                memcpy(dest, src, size);
+                dest += size;
+                b = va_arg(args, GBytes*);
+            }
+            va_end(args);
+
+            return g_bytes_new_take(buf, total);
+        }
+    }
+    return NULL;
+}
+
+GBytes*
+gutil_bytes_xor(
+    GBytes* bytes1,
+    GBytes* bytes2) /* Since 1.0.37 */
+{
+    if (G_LIKELY(bytes1) && G_LIKELY(bytes2)) {
+        gsize size1, size2;
+        const guint8* data1 = g_bytes_get_data(bytes1, &size1);
+        const guint8* data2 = g_bytes_get_data(bytes2, &size2);
+        const gsize size = MIN(size1, size2);
+
+        if (G_LIKELY(size)) {
+            gsize i;
+            guint8* xor_data = g_malloc(size);
+            unsigned long* xor_long = (unsigned long*)xor_data;
+            const unsigned long* long1 = (const unsigned long*)data1;
+            const unsigned long* long2 = (const unsigned long*)data2;
+            const guint8* tail1;
+            const guint8* tail2;
+            guint8* xor_tail;
+
+            /* Optimize by XOR-ing entire words */
+            for (i = 0; (i + sizeof(*long1)) <= size; i += sizeof(*long1)) {
+                *xor_long++ = (*long1++) ^ (*long2++);
+            }
+
+            /* Finish the process byte-by-byte */
+            tail1 = (const guint8*)long1;
+            tail2 = (const guint8*)long2;
+            xor_tail = (guint8*)xor_long;
+            for(; i < size; i++) {
+                *xor_tail++ = (*tail1++) ^ (*tail2++);
+            }
+            return g_bytes_new_take(xor_data, size);
+        }
+        return g_bytes_ref(size1 ? bytes2 : bytes1);
+    }
+    return NULL;
+}
+
+gboolean
+gutil_bytes_equal(
+    GBytes* bytes,
+    const void* data,
+    gsize size) /* Since 1.0.41 */
+{
+    if (bytes && data) {
+        gsize bytes_size;
+        const guint8* contents = g_bytes_get_data(bytes, &bytes_size);
+
+        if (bytes_size == size) {
+            return !bytes_size || !memcmp(contents, data, size);
+        } else {
+            return FALSE;
+        }
+    } else {
+        /* NULLs are equal to each other but not to anything else */
+        return !bytes && !data;
+    }
+}
+
+gboolean
+gutil_bytes_equal_data(
+    GBytes* bytes,
+    const GUtilData* data) /* Since 1.0.41 */
+{
+    if (bytes && data) {
+        gsize bytes_size;
+        const guint8* contents = g_bytes_get_data(bytes, &bytes_size);
+
+        if (bytes_size == data->size) {
+            return !bytes_size || !memcmp(contents, data->bytes, data->size);
+        } else {
+            return FALSE;
+        }
+    } else {
+        /* NULLs are equal to each other but not to anything else */
+        return !bytes && !data;
+    }
+}
+
+/* Calculates the length of NULL-terminated array of pointers */
+gsize
+gutil_ptrv_length(
+    gconstpointer ptrv) /* Since 1.0.50 */
+{
+    if (G_LIKELY(ptrv)) {
+        gsize len = 0;
+        const gconstpointer* ptr = ptrv;
+
+        while (*ptr++) len++;
+        return len;
+    } else {
+        return 0;
+    }
 }
 
 /*

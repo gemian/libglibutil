@@ -1,8 +1,103 @@
-libglibutil (1.0.35+gemian) buster; urgency=medium
+libglibutil (1.0.50+gemian) buster; urgency=medium
 
   * Branched for Gemian
 
  -- Adam Boardman <adamboardman@gmail.com>  Sun, 24 Feb 2019 15:35:48 +0000
+
+libglibutil (1.0.50) unstable; urgency=low
+
+  * Added gutil_ptrv_length()
+
+ -- Slava Monich <slava.monich@jolla.com>  Wed, 28 Oct 2020 17:59:10 +0200
+
+libglibutil (1.0.49) unstable; urgency=low
+
+  * Added gutil_slice_free() macro
+
+ -- Slava Monich <slava.monich@jolla.com>  Sat, 17 Oct 2020 01:01:25 +0300
+
+libglibutil (1.0.48) unstable; urgency=low
+
+  * Make library executable on rpm based systems
+
+ -- Slava Monich <slava.monich@jolla.com>  Mon, 31 Aug 2020 00:07:18 +0300
+
+libglibutil (1.0.47) unstable; urgency=low
+
+  * Added gutil_strv_addv()
+
+ -- Slava Monich <slava.monich@jolla.com>  Tue, 28 Jul 2020 13:56:08 +0300
+
+libglibutil (1.0.46) unstable; urgency=low
+
+  * Allow STRIP to be defined by the environment
+
+ -- Slava Monich <slava.monich@jolla.com>  Sat, 30 May 2020 00:02:35 +0300
+
+libglibutil (1.0.45) unstable; urgency=low
+
+  * Support for multiple archs
+
+ -- Slava Monich <slava.monich@jolla.com>  Fri, 22 May 2020 16:11:42 +0300
+
+libglibutil (1.0.44) unstable; urgency=low
+
+  * Adapted to side-by-side linking
+  * Allow overriding CC for unit tests
+
+ -- Slava Monich <slava.monich@jolla.com>  Tue, 17 Mar 2020 19:01:45 +0200
+
+libglibutil (1.0.43) unstable; urgency=low
+
+  * Allow specifying per-module logging function
+  * Added default GLogProc2 compatible callbacks
+
+ -- Slava Monich <slava.monich@jolla.com>  Fri, 20 Dec 2019 19:31:32 +0200
+
+libglibutil (1.0.42) unstable; urgency=low
+
+  * Zero-initialize timespec::tv_nsec
+  * Optimized gutil_strv_equal()
+
+ -- Slava Monich <slava.monich@jolla.com>  Fri, 22 Nov 2019 00:49:13 +0200
+
+libglibutil (1.0.41) unstable; urgency=low
+
+  * Added gutil_bytes_equal() and gutil_bytes_equal_data()
+
+ -- Slava Monich <slava.monich@jolla.com>  Sun, 10 Nov 2019 17:14:19 +0300
+
+libglibutil (1.0.40) unstable; urgency=low
+
+  * Added gutil_strv_bsearch()
+
+ -- Slava Monich <slava.monich@jolla.com>  Mon, 16 Sep 2019 02:22:51 +0300
+
+libglibutil (1.0.39) unstable; urgency=low
+
+  * Allow use of CC defined by build system
+
+ -- Slava Monich <slava.monich@jolla.com>  Tue, 27 Aug 2019 13:19:56 +0300
+
+libglibutil (1.0.38) unstable; urgency=low
+
+  * Added gutil_data_has_prefix() and gutil_data_has_suffix()
+
+ -- Slava Monich <slava.monich@jolla.com>  Thu, 01 Aug 2019 00:13:32 +0300
+
+libglibutil (1.0.37) unstable; urgency=low
+
+  * Added gutil_bytes_concat() and gutil_bytes_xor()
+
+ -- Slava Monich <slava.monich@jolla.com>  Tue, 23 Jul 2019 21:17:18 +0300
+
+libglibutil (1.0.36) unstable; urgency=low
+
+  * Handle empty log prefix as no prefix at all
+  * Don't nullify default log name in gutil_log_set_type()
+
+ -- Slava Monich <slava.monich@jolla.com>  Thu, 13 Jun 2019 18:15:33 +0300
+>>>>>>> upstream/master
 
 libglibutil (1.0.35) unstable; urgency=low
 
