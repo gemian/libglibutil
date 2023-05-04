@@ -1,7 +1,8 @@
 Source: libglibutil
 Section: libs
 Priority: optional
-Maintainer: Slava Monich <slava.monich@jolla.com>
+Maintainer: Adam Boardman <adamboardman@gmail.com>
+XSBC-Original-Maintainer: Slava Monich <slava.monich@jolla.com>
 Build-Depends: debhelper (>= 8.1.3), libglib2.0-dev (>= 2.32)
 Standards-Version: 3.8.4
 

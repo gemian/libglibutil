@@ -1,3 +1,9 @@
+libglibutil (1.0.69+gemian1) unstable; urgency=medium
+
+  * Branched for Gemian
+
+ -- Adam Boardman <adamboardman@gmail.com>  Thu, 04 May 2023 19:11:17 +0100
+
 libglibutil (1.0.69) unstable; urgency=low
 
   * Runtime and compile time version detection
